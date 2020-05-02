@@ -5,6 +5,7 @@ import math
 from apriltags2_ros.msg import AprilTagDetectionArray
 from sign_reader.msg import SignInfo
 
+# We'll want to pull this out into a dict that is importable
 signDict = { 
     20 : 'STOP',    # Stop sign
     74 : 'GO',      # Traffic light sign
@@ -36,8 +37,8 @@ class SignReader:
             self.pubSignInfo.publish(signDict[-1], -1)
 
 if __name__ == '__main__':
-    rospy.init_node('sign_reader', anonymous=True)
-    AprilTagReader()
+    rospy.init_node('sign_reader_node', anonymous=True)
+    SignReader()
 
     # spin() simply keeps python from exiting until this node is stopped
     rospy.spin()
