@@ -4,17 +4,7 @@ import rospy
 import math
 from apriltags2_ros.msg import AprilTagDetectionArray
 from sign_reader.msg import SignInfo
-
-# We'll want to pull this out into a dict that is importable
-signDict = { 
-    20 : 'STOP',    # Stop sign
-    74 : 'GO',      # Traffic light sign
-    7  : 'LEFT',    # One way pointing left
-    6  : 'RIGHT',   # One way pointing right
-    96 : 'SLOW',    # Duck crossing
-    2  : 'FAST',    # Yield ~ welcome to Massachusetts
-    -1 : 'NONE'
-}
+from sign_reader.signInfo import signDict
 
 class SignReader:
     def __init__(self):
