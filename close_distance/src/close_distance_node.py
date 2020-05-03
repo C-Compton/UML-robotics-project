@@ -33,6 +33,7 @@ class PID:
 		self.current_time=self.previous_time+0.001
 		self.elapsed_time = self.current_time - self.previous_time
 		self.last_measurement=0
+		self.current_measurement=0
 		# Distance controller
 		self.dp = 0
 		self.di = 0
@@ -48,12 +49,15 @@ class PID:
 		twist=Twist2DStamped()
 		twist.v=0
 		twist.omega=0
-		if float(data.dist_to_sign) > 0 : # If tag was detected
+		print(data)
+		print(data.dist_to_sign)
+		if data.dist_to_sign > 0 : # If tag was detected
 	
 	# Here's some code that acts on ALL detected April tags: maneuvering to be a set
 	# distance and angle from the sign. All sign-handling nodes can use this.
-			last_measurement=self.last_measurement
+			last_measurement=self.current_measurement
 			current_measurement = data.dist_to_sign-0.2
+			self.current_measurement=current_measurement
 
 			kdp=1
 			kdi=0
@@ -65,18 +69,14 @@ class PID:
 			self.dp = current_measurement #data
 			self.di = 0 
 			self.dd = 0 
-			#test=Twist2DStamped(v=0,omega=0)
-#			test.v=0
-#			test.omega=0
-			self.pub.publish(twist)
-
-#			self.orien.v=(kdp*self.dp+kdi*self.di+kdd*self.dd)
+			
+			twist.v=(kdp*self.dp+kdi*self.di+kdd*self.dd)
 		
-#			self.orien.omega=(adp*self.ai+adi*self.ai+add*self.ad)
+			twist.omega=(adp*self.ap+adi*self.ai+add*self.ad)
 
 #			self.pub.publish(kdp*self.dp + kdi*self.di + kdd*self.dd,
 #				adp*self.ap+adi*self.ai+ add*self.ad) #straight line, angle
-#			self.pub.publish(self.orien)
+			self.pub.publish(twist)
 
 if __name__ == '__main__':
 	# Get that node started - the launch file will use this
