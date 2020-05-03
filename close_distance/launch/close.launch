@@ -1,0 +1,6 @@
+<launch>
+  <group ns="proj">
+    <node pkg="close_distance" name="sign_approach" type="close_distance_node.py"/>
+  </group>
+</launch>
+
