@@ -21,7 +21,11 @@ class PID:
 		rospy.Subscriber('/sign_info',SignInfo,self.adjust_motion)
 
 		# MUST include a velocity and angle, like the Twist2DStamped.
-		self.pub = rospy.Publisher('/car_cmd_switch_node/cmd', Twist2DStamped, queue_size=10)
+		self.pub = rospy.Publisher('horriblegoose/car_cmd_switch_node/cmd', Twist2DStamped, queue_size=10)
+
+		self.orien=Twist2DStamped
+		self.orien.v=0
+		self.orien.omega=0
 
 		# Initialize my unit's location.
 		# Initialize timing and measurements.
@@ -41,12 +45,12 @@ class PID:
 
 
 	def adjust_motion(self,data):
-		if data.d > -1 : # If tag was detected
+		if float(data.dist_to_sign) > 0 : # If tag was detected
 	
-	# Here's some code that acts on ALL detcted April tags: maneuvering to be a set
+	# Here's some code that acts on ALL detected April tags: maneuvering to be a set
 	# distance and angle from the sign. All sign-handling nodes can use this.
 			last_measurement=self.last_measurement
-			current_measurement = data.data
+			current_measurement = data.dist_to_sign
 
 			kdp=1
 			kdi=0
@@ -58,9 +62,12 @@ class PID:
 			self.dp = -current_measurement #data
 			self.di = 0 
 			self.dd = 0 
-			self.pub.publish(kdp*self.dp + kdi*self.di + kdd*self.dd,
-				adp*self.ap+adi*self.ai+ add*self.ad) #straight line, angle
+			self.orien.v=(kdp*self.dp+kdi*self.di+kdd*self.dd)
+			self.orien.omega=(adp*self.ai+adi*self.ai+add*self.ad)
 
+#			self.pub.publish(kdp*self.dp + kdi*self.di + kdd*self.dd,
+#				adp*self.ap+adi*self.ai+ add*self.ad) #straight line, angle
+			self.pub.publish(self.orien)
 
 if __name__ == '__main__':
 	# Get that node started - the launch file will use this
