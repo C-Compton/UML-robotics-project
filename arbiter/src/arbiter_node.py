@@ -74,7 +74,7 @@ class Arbiter:
 
     def arbitration(self):
         output = Twist2DStamped
-        gentleStop()
+        
         # Lots of logic here to determine 
 
         # Let's get chatty. At any given time, this node may be viewing:
