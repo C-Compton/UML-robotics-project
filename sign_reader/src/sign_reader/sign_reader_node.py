@@ -9,7 +9,7 @@ from sign_reader.signInfo import signDict
 class SignReader:
     def __init__(self):
         rospy.Subscriber(
-            '/tunaboat/tag_detections', 
+            '/horriblegoose/tag_detections', 
             AprilTagDetectionArray, 
             self.printer
         )
