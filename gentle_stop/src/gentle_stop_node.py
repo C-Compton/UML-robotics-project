@@ -7,7 +7,7 @@ from sign_reader.msg import SignInfo
 from std_msgs.msg import Float32
 
 _STOP_DISTANCE=0.22 # the width of one lane
-_THRESHOLD=0.01
+_THRESHOLD=0.01 # if you're thise close, good enough - stop
 
 class PidController:
 
@@ -34,46 +34,49 @@ class PidController:
 class Stopper:
     
     def __init__(self):
-        # Intercept the original message
+        # Receive the original message
         rospy.Subscriber('horriblegoose/lane_controller_node/car_cmd', Twist2DStamped, self.checkCarCmd)
         rospy.Subscriber('sign_info', SignInfo, self.checkSign)
         self.pub = rospy.Publisher('stop_controller_node/car_cmd', Twist2DStamped, queue_size=10)
         self.debug=rospy.Publisher('pid_output',Float32,queue_size=10)
-        self.speed=0 # Twist2DStamped d
+        self.speed=0 # Twist2DStamped v
         self.heading=0 # Twist2DStamped omega
         self.kd=1
         self.ki=0
         self.kd=0
         self.ctrl=PidController(self.kd,self.ki,self.kd,0,0)
 
-    def checkCarCmd(self,carCmd_baseline):
-        if self.did_see_sign == False: 
+    def checkCarCmd(self,carCmd_baseline): # No sign in sight? Defer to the lane controller
+        if self.did_see_sign == False:
             self.speed=carCmd_baseline.v
             self.heading=carCmd_baseline.omega
 
-    
+
     def checkSign(self, sign_msg):
         sign = sign_msg.sign
-        
         self.dist=sign_msg.dist_to_sign
-        # WORKING self.debug.publish(self.dist)
+
         if sign=='STOP':
 
-            if ~hasattr(self,'previous_time'):
+            if ~hasattr(self,'previous_time'): # initialize previous_time
                 self.previous_time=time.time()
 
-            self.current_time=time.time()
-            self.debug.publish(self.current_time)
-            init_error=self.dist
-            if ~hasattr(self,'integ'):
+            if ~hasattr(self,'integ'): # initialize I component
                 self.integ=0
 
-            output = Twist2DStamped()
+            error=self.dist-_STOP_DISTANCE # calculate error
 
-            ctrl_output=self.ctrl.pid(self.previous_time, self.current_time,self.dist-_STOP_DISTANCE)
+            self.current_time=time.time()
+
+            ctrl_output=self.ctrl.pid(self.previous_time, self.current_time,error)
+
             self.debug.publish(ctrl_output)
+
             self.previous_time=self.current_time
 
+
+            output = Twist2DStamped()
+            self.speed=ctrl_output
             if self.speed>_THRESHOLD:
                 output.v=self.speed
             else:
