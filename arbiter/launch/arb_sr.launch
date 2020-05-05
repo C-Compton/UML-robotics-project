@@ -1,0 +1,5 @@
+<launch>
+
+  <include file="$(find sign_reader)/launch/sign_reader.launch" />
+  <node pkg="arbiter" name="arbiter_node" type="arbiter_node.py" />
+</launch>
