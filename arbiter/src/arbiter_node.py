@@ -50,14 +50,15 @@ class Arbiter:
 
         self.arbitration()
 
-    def gentleStop(self,sign_msg):
-        pass
+    def gentleStop(self):
+        self.speed=0
+        
         # Reduce distance to _STOP_DISTANCE.
 
-    def slowDown(self,sign_msg):
+    def slowDown(self):
         self.speed=_LOW_SPEED
 
-    def speedUp(self,sign_msg):
+    def speedUp(self):
         self.speed=_HI_SPEED
 
     def turnLeft(self,sign_msg):
@@ -73,7 +74,7 @@ class Arbiter:
 
     def arbitration(self):
         output = Twist2DStamped
-
+        gentleStop()
         # Lots of logic here to determine 
 
         # Let's get chatty. At any given time, this node may be viewing:
@@ -90,6 +91,8 @@ class Arbiter:
             # turnRight
             # Lane Follower (catch-all)
 
+        output.d=self.speed
+        output.omega=self.heading
 
         self.pub.publish(output)
         
