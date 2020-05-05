@@ -36,7 +36,7 @@ class Stopper:
     def __init__(self):
         # Intercept the original message
         rospy.Subscriber('horriblegoose/lane_controller_node/car_cmd', Twist2DStamped, self.checkCarCmd)
-        rospy.Subscriber('sign_reader_node/sign_info', SignInfo, self.checkSign)
+        rospy.Subscriber('sign_info', SignInfo, self.checkSign)
         self.pub = rospy.Publisher('stop_controller_node/car_cmd', Twist2DStamped, queue_size=10)
         self.debug=rospy.Publisher('pid_output',Float32,queue_size=10)
         self.speed=0 # Twist2DStamped d
@@ -48,41 +48,36 @@ class Stopper:
 
     def checkCarCmd(self,carCmd_baseline):
         if self.did_see_sign == False: 
-            self.speed=carCmd_baseline.d
+            self.speed=carCmd_baseline.v
             self.heading=carCmd_baseline.omega
 
     
     def checkSign(self, sign_msg):
         sign = sign_msg.sign
+        
         self.dist=sign_msg.dist_to_sign
-        if sign is 'STOP':
+        # WORKING self.debug.publish(self.dist)
+        if sign=='STOP':
 
-            if self.previous_time is None:
-                self.previous_time=time()
+            if ~hasattr(self,'previous_time'):
+                self.previous_time=time.time()
 
-            self.current_time=time()
-
-            kp=1
-            ki=0
-            kd=0
+            self.current_time=time.time()
+            self.debug.publish(self.current_time)
             init_error=self.dist
-            if self.integ is None:
+            if ~hasattr(self,'integ'):
                 self.integ=0
 
             output = Twist2DStamped()
-            if self.count is None:
-                self.count=0
-            self.count+=1
-            self.debug.publish(self.count)
-            #vel=PidController(kp, ki, kd, init_error, self.integ)
+
             ctrl_output=self.ctrl.pid(self.previous_time, self.current_time,self.dist-_STOP_DISTANCE)
             self.debug.publish(ctrl_output)
             self.previous_time=self.current_time
 
             if self.speed>_THRESHOLD:
-                output.d=self.speed
+                output.v=self.speed
             else:
-                output.d=0
+                output.v=0
             output.omega=self.heading
 
             self.pub.publish(output)
