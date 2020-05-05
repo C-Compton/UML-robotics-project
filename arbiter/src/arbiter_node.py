@@ -29,7 +29,7 @@ class Arbiter:
 
     def checkCarCmd(self,carCmd_baseline):
         if self.did_see_sign == False: # If there's no sign to handle, use LF
-            self.speed=carCmd_baseline.d
+            self.speed=carCmd_baseline.v
             self.heading=carCmd_baseline.omega
 
     def checkLanePose(self, lanePose_msg):
@@ -91,7 +91,7 @@ class Arbiter:
             # turnRight
             # Lane Follower (catch-all)
 
-        output.d=self.speed
+        output.v=self.speed
         output.omega=self.heading
 
         self.pub.publish(output)
