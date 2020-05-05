@@ -1,4 +1,4 @@
-#!/usrbin/env python
+#!/usr/bin/env python
 
 import rospy
 
@@ -7,7 +7,7 @@ from sign_reader.msg import SignInfo
 
 _THRESHOLD_D = 0.0
 _THRESHOLD_PHI = 0.0
-_NODE_NAME = 'arbiter'
+_NODE_NAME = 'arbiter_node'
 _LOW_SPEED=0.1
 _MED_SPEED=0.2
 _HI_SPEED=0.5
@@ -17,7 +17,7 @@ class Arbiter:
     
     def __init__(self):
         # Intercept the original message
-        rospy.Subscriber('lane_controller_node/car_cmd', Twist2DStamped, queue_size=10)
+        rospy.Subscriber('lane_controller_node/car_cmd', Twist2DStamped, self.checkCarCmd)
         rospy.Subscriber('lane_controller_node/lane_pose', LanePose, self.checkLanePose)
         rospy.Subscriber('sign_reader_node/sign_info', SignInfo, self.checkSign)
 
@@ -25,7 +25,12 @@ class Arbiter:
         self.d_phi_oor = False
         self.did_see_sign = False
         self.speed=_MED_SPEED # Twist2DStamped d
-        self.heading=0
+        self.heading=0 # Twist2DStamped omega
+
+    def checkCarCmd(self,carCmd_baseline):
+        if self.did_see_sign == False: # If there's no sign to handle, use LF
+            self.speed=carCmd_baseline.d
+            self.heading=carCmd_baseline.omega
 
     def checkLanePose(self, lanePose_msg):
         d_error = abs(lanePose.d)
@@ -46,7 +51,7 @@ class Arbiter:
         self.arbitration()
 
     def gentleStop(self,sign_msg):
-        stopper=PID()
+        pass
         # Reduce distance to _STOP_DISTANCE.
 
     def slowDown(self,sign_msg):
@@ -56,9 +61,11 @@ class Arbiter:
         self.speed=_HI_SPEED
 
     def turnLeft(self,sign_msg):
+        pass
         # Turn code
 
     def turnRight(self,sign_msg):
+        pass        
         # Turn code
 
 
@@ -71,16 +78,17 @@ class Arbiter:
 
         # Let's get chatty. At any given time, this node may be viewing:
         # SPEED: from 
-            # Lane Follower
+            # gentleStop
             # turnLeft
             # turnRight
             # speedUp
-            # slowDown
-            # gentleStop
+            # slowDown 
+            # Lane Follower (catch-all)
+
         # ORIENTATION: from 
-            # Lane Follower
             # turnLeft
             # turnRight
+            # Lane Follower (catch-all)
 
 
         self.pub.publish(output)
