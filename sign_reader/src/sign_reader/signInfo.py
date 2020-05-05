@@ -1,6 +1,15 @@
 #!/usr/bin/env python
+from enum import Enum
 
-# We'll want to pull this out into a dict that is importable
+class SignNames(Enum):
+    STOP = 20
+    GO = 74
+    LEFT = 7
+    RIGHT = 6
+    SLOW = 96
+    FAST = 2
+    NONE = -1
+
 signDict = { 
     20 : 'STOP',    # Stop sign
     74 : 'GO',      # Traffic light sign
@@ -11,5 +20,5 @@ signDict = {
     -1 : 'NONE'
 }
 
-signNames = ['STOP', 'GO', 'LEFT', 'RIGHT', 'SLOW', 'FAST', 'NONE']
+signNames = signDict.values()
 
