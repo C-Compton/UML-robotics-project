@@ -21,7 +21,7 @@ class THRES_LEFT(Enum):
 class THRES_RIGHT(Enum):
     D = 0.10
     PHI = 0.40
-    
+		
 _NODE_NAME = 'arbiter'
 
 
@@ -33,7 +33,7 @@ class Arbiter:
         rospy.Subscriber('lane_controller_node/lane_pose', LanePose, self.checkLanePose)
         rospy.Subscriber('sign_reader_node/sign_info', SignInfo, self.checkSign)
         self.pub = rospy.Publisher('arbiter_controller_node/car_cmd', Twist2DStamped, queue_size=10)
-		
+
 
         # D and Phi lane_pose out-of-range boolean
         # We expect the D and/or Phi values to exceed some pre-determined threshold. Once
@@ -45,13 +45,13 @@ class Arbiter:
         self.phi_values = 0.0
         self.speed=_MED_SPEED # Twist2DStamped v
         self.heading=0 # Twist2DStamped omega
-		
-		
-	def checkCarCmd(self,carCmd_baseline):
+
+
+    def checkCarCmd(self,carCmd_baseline):
         if self.did_see_sign == False: # If there's no sign to handle, use LF
             self.speed=carCmd_baseline.v
             self.heading=carCmd_baseline.omega
-		
+
     def checkLanePose(self, lanePose_msg):
         self.d_values.append( abs(lanePose.d))
         self.phi_values.append(abs(lanePose.phi))
@@ -72,11 +72,11 @@ class Arbiter:
             threshold = None
                     
 
-		if threshold is not None:
-			if d_error > self.threshold.D or phi_error > self.threshold.PHI:
-				self.d_phi_oor = True
-			else:
-				self.d_phi_oor = False
+        if threshold is not None:
+            if d_error > self.threshold.D or phi_error > self.threshold.PHI:
+                self.d_phi_oor = True
+            else:
+                self.d_phi_oor = False
             # We need to clear these after a turn, not every pass.
             # self.d_values.clear()
             # self.phi_values.clear()
