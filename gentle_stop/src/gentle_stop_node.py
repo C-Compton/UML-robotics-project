@@ -32,7 +32,7 @@ class PidController:
 
 
 class Stopper:
-    
+
     def __init__(self):
         # Receive the original message
         #rospy.Subscriber('horriblegoose/lane_controller_node/car_cmd', Twist2DStamped, self.checkCarCmd)
@@ -60,10 +60,10 @@ class Stopper:
 
         if sign=='STOP':
 
-            if ~hasattr(self,'previous_time'): # initialize previous_time
+            if  not hasattr(self,'previous_time'): # initialize previous_time
                 self.previous_time=time.time()
 
-            if ~hasattr(self,'integ'): # initialize I component
+            if not hasattr(self,'integ'): # initialize I component
                 self.integ=0
 
             error=self.dist-_STOP_DISTANCE # calculate error
@@ -91,8 +91,8 @@ class Stopper:
 
             # Do stuff with sign message
 
- 
-        
+
+
 
 if __name__=='__main__':
     try:
@@ -100,4 +100,4 @@ if __name__=='__main__':
         Stopper()
         rospy.spin()
     except rospy.ROSInterruptException:
-        rospy.loginfo("TODO : Log Exception thrown")        
+        rospy.loginfo("TODO : Log Exception thrown")
