@@ -105,7 +105,8 @@ class Arbiter:
     def speedUp(self):
         self.speed=_HI_SPEED
 
-    def turnRobot(self, v, omega, duration_time, rate=100):
+    def moveRobot(self, v, omega, duration_time, rate=100):
+        # Generic function for moving the robot for a certain amount of time
         output = Twist2DStamped()
         start_time = rospy.get_time()  
         while (rospy.get_time() - start_time) < duration_time:
@@ -120,24 +121,29 @@ class Arbiter:
         self.pub.publish(output)
 
     def turn(self):
+        # Assume that the robot comes to a stop before executing a turn.
+        # Use the phi value to center it
         if self.phi_values[-1] > 0.2 or self.phi_values[-1] < -0.2:
-            self.turnRobot(0, -2 * self.phi_values[-1], 0.5)
+            self.moveRobot(0, -2 * self.phi_values[-1], 0.5)
 
+        # Then, based on the sign, we turn
+        # We set more or less aggressive omegas based on the position of the 
+        # robot in the lane
         if self.last_sign == 'LEFT':
             if math.fabs(self.d_values[-1]) <= 0.05:
-                turnRobot(0.25, 2.2, 3)
+                moveRobot(0.25, 2.2, 3)
             elif self.d_values[-1] > 0.05:
-                turnRobot(0.25, 1.9, 3)
+                moveRobot(0.25, 1.9, 3)
             elif self.d_values[-1] < -0.05:
-                turnRobot(0.25, 2.5, 3)
+                moveRobot(0.25, 2.5, 3)
 
         elif self.last_sign == 'RIGHT':
             if math.fabs(self.d_values[-1]) <= 0.05:
-                turnRobot(0.25, -3.8, 1.5)
+                moveRobot(0.25, -3.8, 1.5)
             elif self.d_values[-1] > 0.05:
-                turnRobot(0.25, -3.9, 1.5)
+                moveRobot(0.25, -3.9, 1.5)
             elif self.d_values[-1] < -0.05:
-                turnRobot(0.25, -3.5, 1.5)
+                moveRobot(0.25, -3.5, 1.5)
 
         # Comment from Saba:
         # Go straight for 1 sec just to make sure we are in the
