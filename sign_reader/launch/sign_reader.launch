@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="veh" default="$(env VEHICLE_NAME)"/>
+  <arg name="veh" default="$(env VEHICLE_NAME)"/>  
   <include file="$(find duckietown_demos)/launch/apriltag_detector.launch" />
   <node pkg="sign_reader" name="sign_reader_node" type="sign_reader_node.py">
     <remap from="/duckiebot/tag_detections" to="/$(arg veh)/tag_detections"/>
