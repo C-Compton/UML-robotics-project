@@ -41,38 +41,37 @@ class Arbiter:
         # turn and the bot is detecting a good position in lane again.
         self.d_phi_oor = False
         self.did_see_sign = False
-        self.d_values = 0.0
-        self.phi_values = 0.0
+        self.d_values = []
+        self.phi_values = []
         self.speed=_MED_SPEED # Twist2DStamped v
         self.heading=0 # Twist2DStamped omega
 
 
     def checkCarCmd(self,carCmd_baseline):
         if self.did_see_sign == False: # If there's no sign to handle, use LF
-            self.speed=carCmd_baseline.v
-            self.heading=carCmd_baseline.omega
+            self.speed = carCmd_baseline.v
+            self.heading = carCmd_baseline.omega
 
     def checkLanePose(self, lanePose_msg):
-        self.d_values.append( abs(lanePose.d))
-        self.phi_values.append(abs(lanePose.phi))
+        self.d_values.append(lanePose.d)
+        self.phi_values.append(lanePose.phi)
 
-        if self.d_values.len() >= 20 and self.phi_values.len() >= 20:
-            self.d_values.pop()
-            self.phi_values.pop()
+        while len(self.d_values) >= 20 and len(self.phi_values) >= 20:
+            # TODO Probably not the most efficient way to do this but it works for now
+            self.d_values.pop(0)
+            self.phi_values.pop(0)
 
         d_error = sum(self.d_values) / float(len(self.d_values))
         phi_error = sum(self.phi_values) / float(len(self.phi_values))
 
-        self.threshold
         if self.last_sign is 'LEFT':
             self.threshold = THRES_LEFT
         elif self.last_sign is 'RIGHT':
             self.threshold = THRES_RIGHT
         else:
-            threshold = None
+            self.threshold = None
                     
-
-        if threshold is not None:
+        if self.threshold is not None:
             if d_error > self.threshold.D or phi_error > self.threshold.PHI:
                 self.d_phi_oor = True
             else:
@@ -106,15 +105,44 @@ class Arbiter:
     def speedUp(self):
         self.speed=_HI_SPEED
 
-    def turnLeft(self,sign_msg):
-        pass
-        # Turn code
+    def turnRobot(self, v, omega, duration_time, rate=100):
+        output = Twist2DStamped()
+        start_time = rospy.get_time()  
+        while (rospy.get_time() - start_time) < duration_time:
+            output.v = v
+            output.omega = omega
+            rate = rospy.Rate(rate)
+            self.pub.publish(output)
+            rate.sleep()
 
-    def turnRight(self,sign_msg):
-        pass        
-        # Turn code
+        output.v = 0
+        output.omega = 0
+        self.pub.publish(output)
 
+    def turn(self):
+        if self.phi_values[-1] > 0.2 or self.phi_values[-1] < -0.2:
+            self.turnRobot(0, -2 * self.phi_values[-1], 0.5)
 
+        if self.last_sign == 'LEFT':
+            if math.fabs(self.d_values[-1]) <= 0.05:
+                turnRobot(0.25, 2.2, 3)
+            elif self.d_values[-1] > 0.05:
+                turnRobot(0.25, 1.9, 3)
+            elif self.d_values[-1] < -0.05:
+                turnRobot(0.25, 2.5, 3)
+
+        elif self.last_sign == 'RIGHT':
+            if math.fabs(self.d_values[-1]) <= 0.05:
+                turnRobot(0.25, -3.8, 1.5)
+            elif self.d_values[-1] > 0.05:
+                turnRobot(0.25, -3.9, 1.5)
+            elif self.d_values[-1] < -0.05:
+                turnRobot(0.25, -3.5, 1.5)
+
+        # Comment from Saba:
+        # Go straight for 1 sec just to make sure we are in the
+        # secound street.(it can be omited because if we set a
+        # controler we do n$
 
 
     def arbitration(self):
@@ -139,14 +167,6 @@ class Arbiter:
         output.v=self.speed
         output.omega=self.heading
 
-    def arbitration(self):
-        output = Twist2DStamped()
-
-        # Lots of logic here to determine 
-
-
-        self.pub.publish(output)
-        
 
 if __name__=='__main__':
     try:
