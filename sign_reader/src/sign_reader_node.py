@@ -4,7 +4,7 @@ import rospy
 import math
 from apriltags2_ros.msg import AprilTagDetectionArray
 from sign_reader.msg import SignInfo
-from sign_reader.signInfo import signDict
+from utilities.utils import signDict
 
 class SignReader:
     def __init__(self):
