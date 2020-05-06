@@ -8,6 +8,7 @@ from std_msgs.msg import Float32
 
 _STOP_DISTANCE=0.22 # the width of one lane
 _THRESHOLD=0.01 # if you're this close, good enough - stop
+_BOT_NAME='horriblegoose'
 
 class PidController:
 
@@ -35,24 +36,17 @@ class Stopper:
     
     def __init__(self):
         # Receive the original message
-        #rospy.Subscriber('horriblegoose/lane_controller_node/car_cmd', Twist2DStamped, self.checkCarCmd)
         rospy.Subscriber('sign_info', SignInfo, self.checkSign)
-#        self.pub = rospy.Publisher('/horriblegoose/lane_controller_node/car_cmd', Twist2DStamped, queue_size=10)
-        self.pub=rospy.Publisher('/horriblegoose/car_cmd_switch_node/cmd',Twist2DStamped,queue_size=10)
-
-        self.debug=rospy.Publisher('pid_output',Float32,queue_size=10)
+        self.pub=rospy.Publisher('/'+_BOT_NAME+'/car_cmd_switch_node/cmd',Twist2DStamped,queue_size=10)
+        self.debug=rospy.Publisher('debug_output',Float32,queue_size=10)
         self.speed=0 # Twist2DStamped v
         self.heading=0 # Twist2DStamped omega
-        self.kp=1
+        self.kp=0.5
         self.ki=0
         self.kd=0
         self.ctrl=PidController(self.kp,self.ki,self.kd,0,0)
 
-    def checkCarCmd(self,carCmd_baseline): # No sign in sight? Defer to the lane controller
-        #if self.did_see_sign == False:
-         #   self.speed=carCmd_baseline.v
-         #   self.heading=carCmd_baseline.omega
-        pass
+
 
     def checkSign(self, sign_msg):
         sign = sign_msg.sign
