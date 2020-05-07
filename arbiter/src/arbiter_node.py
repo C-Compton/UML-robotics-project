@@ -50,6 +50,7 @@ class Arbiter:
         self.heading=0 # Twist2DStamped omega
         self.vMultiplier = 1
         self.stopCtrl = PidController(0.5, 0, 0, 0, 0)
+        self.did_see_sign = False
 
 
     def checkCarCmd(self,carCmd_baseline):
