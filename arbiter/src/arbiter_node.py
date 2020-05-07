@@ -50,6 +50,7 @@ class Arbiter:
         self.vMultiplier = 1
         self.stopCtrl = PidController(0.5, 0, 0, 0, 0)
         self.did_see_sign = False
+        self.last_sign = 'NONE'
 
     def updateSelfState(self, selfState):
         self.curr_v = selfState.v
@@ -115,6 +116,7 @@ class Arbiter:
             previous_time = current_time
 
             self.speed = ctrl_output
+            rospy.loginfo('speed in gentleStop: ' + str(self.speed))
             output.v = self.speed
             output.omega = self.heading
 
@@ -183,28 +185,32 @@ class Arbiter:
 
     def arbitration(self):
         if not self.blocking:
-            if self.sign_seen == 'STOP':
+            if self.last_sign == 'STOP':
                 self.blocking = True
                 self.gentleStop()
                 self.blocking = False
 
-            elif self.sign_seen == 'LEFT':
+            elif self.last_sign == 'LEFT':
+                rospy.loginfo('turning left')
+                self.blocking = True
+                rospy.loginfo('about to stop')
+                self.gentleStop()
+                rospy.loginfo('about to turn')
+                self.turn()
+                rospy.loginfo('turn complete')
+                self.blocking = False
+
+            elif self.last_sign == 'RIGHT':
                 self.blocking = True
                 self.gentleStop()
                 self.turn()
                 self.blocking = False
 
-            elif self.sign_seen == 'RIGHT':
-                self.blocking = True
-                self.gentleStop()
-                self.turn()
-                self.blocking = False
-
-            elif self.sign_seen == 'SLOW':
+            elif self.last_sign == 'SLOW':
                 self.vMultiplier = 0.5
                 self.go()
 
-            elif self.sign_seen == 'FAST':
+            elif self.last_sign == 'FAST':
                 self.vMultiplier = 1
                 self.go()
 
