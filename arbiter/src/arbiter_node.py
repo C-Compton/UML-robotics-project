@@ -23,9 +23,6 @@ class THRES_RIGHT(Enum):
     D = 0.10
     PHI = 0.40
 		
-_NODE_NAME = 'arbiter'
-
-
 class Arbiter:
     
     def __init__(self):
