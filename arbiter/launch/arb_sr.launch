@@ -12,7 +12,7 @@
         <remap from="lane_controller_node/car_cmd" to="lane_controller_node/arbiter_cmd/>"
       -->
       <remap from="lane_controller_node/car_cmd" to="lane_controller_node/arbiter_cmd"/>
-      <remap from="arbiter_controller_node/car_cmd" to="lane_controller_node/car_cmd"/>
+      <remap from="arbiter_node/car_cmd" to="lane_controller_node/car_cmd"/>
     </node>
   </group>
 </launch>
