@@ -30,7 +30,7 @@ class Arbiter:
     def __init__(self):
         # Intercept the original message
         rospy.Subscriber('lane_controller_node/car_cmd', Twist2DStamped, self.checkCarCmd)
-        rospy.Subscriber('lane_controller_node/lane_pose', LanePose, self.checkLanePose)
+        rospy.Subscriber('lane_filter_node/lane_pose', LanePose, self.checkLanePose)
         rospy.Subscriber('sign_reader_node/sign_info', SignInfo, self.checkSign)
         self.pub = rospy.Publisher('arbiter_controller_node/car_cmd', Twist2DStamped, queue_size=10)
 

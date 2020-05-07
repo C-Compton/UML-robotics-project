@@ -1,6 +1,15 @@
 <launch>
+  <arg name="veh" default="$(env VEHICLE_NAME)" />
 
+  <include file="$(find duckietown_demos)/launch/lane_following.launch"/>
   <include file="$(find sign_reader)/launch/sign_reader.launch" />
-  <node pkg="arbiter" name="arbiter_node" type="arbiter_node.py" />
-  <node pkg="gentle_stop" name="gentle_stop_node" type="gentle_stop_node.py" />
+  <node pkg="arbiter" name="arbiter_node" type="arbiter_node.py">
+    <!-- 
+      In /dt-core/package/duckietown_demos/launch/master.launch, add the following
+      just after line 291
+      <remap from="lane_controller_node/car_cmd" to="lane_controller_node/arbiter_cmd/>"
+    -->
+    <remap from="lane_controller_node/car_cmd" to="lane_controller_node/arbiter_cmd"/>
+    <remap from="arbiter_controller_node/car_cmd" to="lane_controller_node/car_cmd"/>
+  </node>
 </launch>
