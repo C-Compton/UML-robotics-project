@@ -3,7 +3,7 @@
 import rospy
 import math
 
-from duckietown_msgs.msg import LanePose, Twist2DStamped
+from duckietown_msgs.msg import LanePose, Twist2DStamped, BoolStamped
 from sign_reader.msg import SignInfo
 from utilities.utils import PidController
 
@@ -34,6 +34,7 @@ class Arbiter:
         rospy.Subscriber('sign_reader_node/sign_info', SignInfo, self.checkSign)
         rospy.Subscriber('arbiter_node/new_car_cmd', Twist2DStamped, self.updateSelfState)
         self.pub = rospy.Publisher('arbiter_node/new_car_cmd', Twist2DStamped, queue_size=10)
+        self.pubSwitch = rospy.Publisher('/jafar/apriltag_detector_node/switch', BoolStamped, queue_size=10)
 
 
         # D and Phi lane_pose out-of-range boolean
@@ -94,7 +95,7 @@ class Arbiter:
         self.sign = sign_msg.sign
         self.dist_to_sign = sign_msg.dist_to_sign
 
-        if sign is 'NONE':
+        if self.sign is 'NONE':
             self.did_see_sign = False        
         else:
             self.did_see_sign = True
