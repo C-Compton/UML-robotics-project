@@ -4,13 +4,15 @@ import rospy
 
 from duckietown_msgs.msg import LanePose, Twist2DStamped
 from sign_reader.msg import SignInfo
+from utilities.utils import PidController
 
 
 _NODE_NAME = 'arbiter_node'
 _LOW_SPEED=0.1
 _MED_SPEED=0.2
 _HI_SPEED=0.5
-_STOP_DISTANCE=0.22 # the width of one lane
+_STOP_DISTANCE=0.6 # the width of one lane
+_SPEED_THRESHOLD=0.01
 
 from enum import Enum
 
@@ -39,18 +41,22 @@ class Arbiter:
         # We expect the D and/or Phi values to exceed some pre-determined threshold. Once
         # the are back within bounds, we can assume that we've successfully navigated the
         # turn and the bot is detecting a good position in lane again.
+        self.blocking = False
         self.d_phi_oor = False
         self.did_see_sign = False
         self.d_values = []
         self.phi_values = []
         self.speed=_MED_SPEED # Twist2DStamped v
         self.heading=0 # Twist2DStamped omega
+        self.vMultiplier = 1
+        self.stopCtrl = PidController(0.5, 0, 0, 0, 0)
 
 
     def checkCarCmd(self,carCmd_baseline):
         if self.did_see_sign == False: # If there's no sign to handle, use LF
             self.speed = carCmd_baseline.v
             self.heading = carCmd_baseline.omega
+        self.arbitration()
 
     def checkLanePose(self, lanePose_msg):
         self.d_values.append(lanePose.d)
@@ -82,6 +88,7 @@ class Arbiter:
     
     def checkSign(self, sign_msg):
         self.sign = sign_msg.sign
+        self.dist_to_sign = sign_msg.dist_to_sign
 
         if sign is 'NONE':
             self.did_see_sign = False        
@@ -89,15 +96,30 @@ class Arbiter:
             self.did_see_sign = True
             self.last_sign = self.sign
 
-            # Do stuff with sign message
-
-        self.arbitration()
-
+        # Should this be here or in chackCarCmd? If we call it here, Jooseppi
+        # feels like it might miss wheel command messages
+        # self.arbitration()
 
     def gentleStop(self):
-        self.speed=0
-        
-        # Reduce distance to _STOP_DISTANCE.
+        output = Twist2DStamped()
+        previous_time = time.time()
+        integ = 0
+        error_dist = self.dist_to_sign - _STOP_DISTANCE # calculate error
+
+        while(self.speed > _SPEED_THRESHOLD):
+            current_time = time.time()
+            ctrl_output = self.stopCtrl.pid(previous_time, current_time, error_dist)
+            previous_time = current_time
+
+            self.speed = ctrl_output
+            output.v = self.speed
+            output.omega = self.heading
+
+            self.pub.publish(output)
+
+        output.v = 0
+        output.omega = 0
+        self.pub.publish(output)
 
     def slowDown(self):
         self.speed=_LOW_SPEED
@@ -150,28 +172,41 @@ class Arbiter:
         # secound street.(it can be omited because if we set a
         # controler we do n$
 
+    def go(self):
+        output = Twist2DStamped()
+        output.v = self.speed * self.vMultiplier
+        output.omega = self.heading
+        self.pub.publish(output)
 
     def arbitration(self):
-        output = Twist2DStamped
-        
-        # Lots of logic here to determine 
+        if not self.blocking:
+            if self.sign_seen == 'STOP':
+                self.blocking = True
+                self.gentleStop()
+                self.blocking = False
 
-        # Let's get chatty. At any given time, this node may be viewing:
-        # SPEED: from 
-            # gentleStop
-            # turnLeft
-            # turnRight
-            # speedUp
-            # slowDown 
-            # Lane Follower (catch-all)
+            elif self.sign_seen == 'LEFT':
+                self.blocking = True
+                self.gentleStop()
+                self.turn()
+                self.blocking = False
 
-        # ORIENTATION: from 
-            # turnLeft
-            # turnRight
-            # Lane Follower (catch-all)
+            elif self.sign_seen == 'RIGHT':
+                self.blocking = True
+                self.gentleStop()
+                self.turn()
+                self.blocking = False
 
-        output.v=self.speed
-        output.omega=self.heading
+            elif self.sign_seen == 'SLOW':
+                self.vMultiplier = 0.5
+                self.go()
+
+            elif self.sign_seen == 'FAST':
+                self.vMultiplier = 1
+                self.go()
+
+            else: # This also covers GO, FAST, and SLOW
+                self.go()
 
 
 if __name__=='__main__':
