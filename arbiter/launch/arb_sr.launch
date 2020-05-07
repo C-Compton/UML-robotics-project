@@ -9,6 +9,7 @@
     -->
     <remap from="lane_controller_node/car_cmd" to="$(arg veh)/lane_controller_node/arbiter_intercept_cmd"/>
     <remap from="arbiter_node/new_car_cmd" to="$(arg veh)/lane_controller_node/car_cmd"/>
+    <remap from="lane_filter_node/lane_pose" to="$(arg veh)/lane_filter_node/lane_pose"/>
   </node>
   
   <include file="$(find duckietown_demos)/launch/lane_following.launch"/>
