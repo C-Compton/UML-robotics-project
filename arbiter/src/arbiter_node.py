@@ -32,6 +32,7 @@ class Arbiter:
         rospy.Subscriber('lane_controller_node/car_cmd', Twist2DStamped, self.checkCarCmd)
         rospy.Subscriber('lane_filter_node/lane_pose', LanePose, self.checkLanePose)
         rospy.Subscriber('sign_reader_node/sign_info', SignInfo, self.checkSign)
+        rospy.Subscriber('arbiter_controller_node/car_cmd', Twist2DStamped, self.updateSelfState)
         self.pub = rospy.Publisher('arbiter_controller_node/car_cmd', Twist2DStamped, queue_size=10)
 
 
@@ -46,6 +47,10 @@ class Arbiter:
         self.speed=_MED_SPEED # Twist2DStamped v
         self.heading=0 # Twist2DStamped omega
 
+
+    def updateSelfState(self, selfState):
+        self.curr_v = selfState.v
+        self.curr_omega = selfState.omega
 
     def checkCarCmd(self,carCmd_baseline):
         if self.did_see_sign == False: # If there's no sign to handle, use LF
