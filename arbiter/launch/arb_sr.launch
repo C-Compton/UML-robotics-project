@@ -1,17 +1,16 @@
 <launch>
   <arg name="veh" default="$(env VEHICLE_NAME)" />
     
-  <group ns="$(arg veh)" >
-    <node pkg="arbiter" name="arbiter_node" type="arbiter_node.py">
-      <!-- 
-        In /dt-core/package/duckietown_demos/launch/master.launch, add the following
-        just just after line 285, before the <include> tage for lane_controller_node.launch
-        <remap from="lane_controller_node/car_cmd" to="lane_controller_node/arbiter_cmd/>"
-      -->
-      <remap from="lane_controller_node/car_cmd" to="lane_controller_node/arbiter_intercept_cmd"/>
-      <remap from="arbiter_node/new_car_cmd" to="lane_controller_node/car_cmd"/>
-    </node>
-  </group>
+  <node pkg="arbiter" name="arbiter_node" type="arbiter_node.py">
+    <!-- 
+      In /dt-core/package/duckietown_demos/launch/master.launch, add the following
+      just just after line 285, before the <include> tage for lane_controller_node.launch
+      <remap from="lane_controller_node/car_cmd" to="lane_controller_node/arbiter_cmd/>"
+    -->
+    <remap from="lane_controller_node/car_cmd" to="$(arg veh)/lane_controller_node/arbiter_intercept_cmd"/>
+    <remap from="arbiter_node/new_car_cmd" to="$(arg veh)/lane_controller_node/car_cmd"/>
+  </node>
+  
   <include file="$(find duckietown_demos)/launch/lane_following.launch"/>
   <include file="$(find sign_reader)/launch/sign_reader.launch" />
 </launch>
