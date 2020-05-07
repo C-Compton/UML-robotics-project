@@ -9,12 +9,12 @@ from utilities.utils import signDict
 class SignReader:
     def __init__(self):
         rospy.Subscriber(
-            '/horriblegoose/tag_detections', 
+            '/tag_detections', 
             AprilTagDetectionArray, 
             self.printer
         )
 
-        self.pubSignInfo = rospy.Publisher('/sign_info', SignInfo, queue_size=10)
+        self.pubSignInfo = rospy.Publisher('sign_reader_node/sign_info', SignInfo, queue_size=10)
 
     def printer(self, aprilTagInfo):
         # If the length of the detections list is 0, we aren't seeing any signs

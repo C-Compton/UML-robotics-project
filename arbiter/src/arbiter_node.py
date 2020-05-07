@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
+import math
 
 from duckietown_msgs.msg import LanePose, Twist2DStamped
 from sign_reader.msg import SignInfo
@@ -24,17 +25,15 @@ class THRES_RIGHT(Enum):
     D = 0.10
     PHI = 0.40
 		
-_NODE_NAME = 'arbiter'
-
-
 class Arbiter:
     
     def __init__(self):
         # Intercept the original message
         rospy.Subscriber('lane_controller_node/car_cmd', Twist2DStamped, self.checkCarCmd)
-        rospy.Subscriber('lane_controller_node/lane_pose', LanePose, self.checkLanePose)
+        rospy.Subscriber('lane_filter_node/lane_pose', LanePose, self.checkLanePose)
         rospy.Subscriber('sign_reader_node/sign_info', SignInfo, self.checkSign)
-        self.pub = rospy.Publisher('arbiter_controller_node/car_cmd', Twist2DStamped, queue_size=10)
+        rospy.Subscriber('arbiter_node/new_car_cmd', Twist2DStamped, self.updateSelfState)
+        self.pub = rospy.Publisher('arbiter_node/new_car_cmd', Twist2DStamped, queue_size=10)
 
 
         # D and Phi lane_pose out-of-range boolean
@@ -52,6 +51,9 @@ class Arbiter:
         self.stopCtrl = PidController(0.5, 0, 0, 0, 0)
         self.did_see_sign = False
 
+    def updateSelfState(self, selfState):
+        self.curr_v = selfState.v
+        self.curr_omega = selfState.omega
 
     def checkCarCmd(self,carCmd_baseline):
         if self.did_see_sign == False: # If there's no sign to handle, use LF
@@ -60,8 +62,8 @@ class Arbiter:
         self.arbitration()
 
     def checkLanePose(self, lanePose_msg):
-        self.d_values.append(lanePose.d)
-        self.phi_values.append(lanePose.phi)
+        self.d_values.append(lanePose_msg.d)
+        self.phi_values.append(lanePose_msg.phi)
 
         while len(self.d_values) >= 20 and len(self.phi_values) >= 20:
             # TODO Probably not the most efficient way to do this but it works for now
