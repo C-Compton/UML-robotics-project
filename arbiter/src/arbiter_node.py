@@ -71,7 +71,7 @@ class Arbiter:
             self.phi_values.pop(0)
 
         d_error = sum(list(map(abs, self.d_values))) / float(len(self.d_values))
-        phi_error = sum(list(map(self.phi_values))) / float(len(self.phi_values))
+        phi_error = sum(list(map(abs, self.phi_values))) / float(len(self.phi_values))
 
         if self.last_sign is 'LEFT':
             self.threshold = THRES_LEFT
