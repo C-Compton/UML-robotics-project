@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
+import math
 
 from duckietown_msgs.msg import LanePose, Twist2DStamped
 from sign_reader.msg import SignInfo
@@ -58,8 +59,8 @@ class Arbiter:
             self.heading = carCmd_baseline.omega
 
     def checkLanePose(self, lanePose_msg):
-        self.d_values.append(lanePose.d)
-        self.phi_values.append(lanePose.phi)
+        self.d_values.append(lanePose_msg.d)
+        self.phi_values.append(lanePose_msg.phi)
 
         while len(self.d_values) >= 20 and len(self.phi_values) >= 20:
             # TODO Probably not the most efficient way to do this but it works for now
