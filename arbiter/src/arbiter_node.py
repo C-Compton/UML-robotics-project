@@ -47,6 +47,7 @@ class Arbiter:
         self.phi_values = []
         self.speed=_MED_SPEED # Twist2DStamped v
         self.heading=0 # Twist2DStamped omega
+        self.last_sign = None
 
 
     def updateSelfState(self, selfState):
