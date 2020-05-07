@@ -59,9 +59,9 @@ class Arbiter:
 
     def checkCarCmd(self,carCmd_baseline):
         if self.did_see_sign == False: # If there's no sign to handle, use LF
-            self.speed = carCmd_baseline.v
-            self.heading = carCmd_baseline.omega
-        self.arbitration()
+            self.pub.publish(carCmd_baseline)
+        else:
+            self.arbitration()
 
     def checkLanePose(self, lanePose_msg):
         self.d_values.append(lanePose_msg.d)
@@ -95,9 +95,7 @@ class Arbiter:
         self.sign = sign_msg.sign
         self.dist_to_sign = sign_msg.dist_to_sign
 
-        if self.sign is 'NONE':
-            self.did_see_sign = False        
-        else:
+        if self.sign is not 'NONE':
             self.did_see_sign = True
             self.last_sign = self.sign
 
@@ -190,6 +188,7 @@ class Arbiter:
                 self.blocking = True
                 self.gentleStop()
                 self.blocking = False
+                return
 
             elif self.last_sign == 'LEFT':
                 rospy.loginfo('turning left')
@@ -217,6 +216,7 @@ class Arbiter:
 
             else: # This also covers GO, FAST, and SLOW
                 self.go()
+            self.did_see_sign = False
 
 
 if __name__=='__main__':
