@@ -1,8 +1,5 @@
 <launch>
   <arg name="veh" default="$(env VEHICLE_NAME)" />
-
-  <include file="$(find duckietown_demos)/launch/lane_following.launch"/>
-  <include file="$(find sign_reader)/launch/sign_reader.launch" />
     
   <group ns="$(arg veh)" >
     <node pkg="arbiter" name="arbiter_node" type="arbiter_node.py">
@@ -15,4 +12,6 @@
       <remap from="arbiter_node/new_car_cmd" to="lane_controller_node/car_cmd"/>
     </node>
   </group>
+  <include file="$(find duckietown_demos)/launch/lane_following.launch"/>
+  <include file="$(find sign_reader)/launch/sign_reader.launch" />
 </launch>
