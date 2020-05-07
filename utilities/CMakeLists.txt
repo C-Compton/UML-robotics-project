@@ -9,7 +9,6 @@ project(utilities)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   rospy
-  std_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -102,7 +101,7 @@ catkin_python_setup()
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES sign_reader
-  CATKIN_DEPENDS rospy std_msgs
+  CATKIN_DEPENDS rospy
 #  DEPENDS system_lib
 )
 
