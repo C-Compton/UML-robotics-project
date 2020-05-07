@@ -5,7 +5,7 @@
     <!-- 
       In /dt-core/package/duckietown_demos/launch/master.launch, add the following
       just just after line 285, before the <include> tage for lane_controller_node.launch
-      <remap from="lane_controller_node/car_cmd" to="lane_controller_node/arbiter_cmd/>"
+      <remap from="lane_controller_node/car_cmd" to="lane_controller_node/arbiter_intercept_cmd/>"
     -->
     <remap from="lane_controller_node/car_cmd" to="$(arg veh)/lane_controller_node/arbiter_intercept_cmd"/>
     <remap from="arbiter_node/new_car_cmd" to="$(arg veh)/lane_controller_node/car_cmd"/>
