@@ -15,11 +15,11 @@ _NODE_NAME = 'arbiter_node'
 _STOP_DISTANCE=0.6 # the width of one lane
 
 
-class SPEED(Enum):
-    LOW = 0.1
-    MED = 0.2
-    HI  = 0.5
-    TH  = 0.01
+
+_LOW_SPD = 0.1
+_MED_SPD = 0.2
+_HI_SPD  = 0.5
+_SPD_TH  = 0.01
 
 class THRES_LEFT(Enum):
     D = 0.25
@@ -38,7 +38,7 @@ class Arbiter:
         rospy.Subscriber('sign_reader_node/sign_info', SignInfo, self.checkSign)
         rospy.Subscriber('arbiter_node/new_car_cmd', Twist2DStamped, self.updateSelfState)
         self.pub = rospy.Publisher('arbiter_node/new_car_cmd', Twist2DStamped, queue_size=10)
-        self.pubSwitch = rospy.Publisher('/jafar/apriltag_detector_node/switch', BoolStamped, queue_size=10)
+        self.pubSwitch = rospy.Publisher('apriltag_detector_node/switch', BoolStamped, queue_size=10)
 
         self.blocking = False
         self.d_phi_oor = False
@@ -46,7 +46,7 @@ class Arbiter:
         self.d_err = 0.0
         self.phi_err = 0.0
 
-        self.speed_limit = SPEED.MED
+        self.speed_limit = _MED_SPD
         self.heading=0 # Twist2DStamped omega
 
         self.vMultiplier = 1
@@ -62,12 +62,12 @@ class Arbiter:
     def publish(self, v, o):
         output = Twist2DStamped()
         output.v = min(v, self.speed_limit)
-        output.o = o
+        output.omega = o
         self.pub.publish(output)
         
     def checkCarCmd(self, car_cmd_baseline):
         # If there's no sign to handle, use LF
-        if not self.did_see_sign:
+        if not self.did_see_sign or self.last_sign is 'GO':
             v = car_cmd_baseline.v
             o = car_cmd_baseline.omega
             self.publish(v, o)
@@ -87,10 +87,13 @@ class Arbiter:
         self.d_err = lanePose_msg.d
         self.phi_err = lanePose_msg.phi    
 
+    def toggleDidSeeSign(self):
+        self.did_see_sign = False
+        
     def gentleStop(self):
-        if self.curr_v <= SPEED.TH:
+        if self.curr_v <= _SPD_TH:
             self.publish(0.0, 0.0)
-            rospy.Timer(rospy.Duration(3), lambda self: self.did_see_sign=False)
+            rospy.Timer(rospy.Duration(3), self.toggleDidSeeSign())
             return
 
         error_dist = self.dist_to_sign - _STOP_DISTANCE # calculate error
@@ -103,10 +106,10 @@ class Arbiter:
         self.publish(v, self.curr_omega)
 
     def slowDown(self):
-        self.speed_limit = SPEED.LOW
+        self.speed_limit = _LOW_SPD
 
     def speedUp(self):
-        self.speed_limit = SPEED.MED
+        self.speed_limit = _MED_SPD
 
     def moveRobot(self, v, omega, duration_time, rate=100):
         # Generic function for moving the robot for a certain amount of time
@@ -151,7 +154,7 @@ class Arbiter:
         # controler we do n$
 
     def go(self):
-        v = self.speed * self.vMultiplier
+        v = self.curr_v * self.vMultiplier
         omega = self.heading
         self.publish(v, omega)
 
@@ -187,8 +190,6 @@ class Arbiter:
                 self.vMultiplier = 1
                 self.go()
 
-            else: # This also covers GO, FAST, and SLOW
-                self.go()
             self.did_see_sign = False
 
 if __name__=='__main__':
