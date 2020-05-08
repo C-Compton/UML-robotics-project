@@ -19,14 +19,14 @@ _SPD_TH  = 0.01
 
 class Speed:
     def __init__(self):
-        self.limit = "med"
+        self.speed_limit = "med"
 
         self.caps = {"low":0.1, "med":0.2, "hi":0.5}
 
-    def speed_limit(self):
-        return self.caps.get(self.limit, 0.2)
+    def limit(self):
+        return self.caps.get(self.speed_limit, 0.2)
 
-    def set_limits(self, low, med, hi):
+    def set_caps(self, low, med, hi):
         self.caps["low"] = low
         self.caps["med"] = med
         self.caps["hi"] = hi
@@ -59,36 +59,8 @@ class Arbiter:
         self.R_OMEGA = 4.0
         self.R_DURATION = 1.5
 
-        self.speed_limit = Speed()
+        self.speed = Speed()
 
-    def tuneSpeedLimits(self, tune_msg):
-        self.speed_limit.set_limits(tune_msg.low, tune_msg.med, tune_msg.hi)
-        caps = self.speed_limit.caps
-        msg = """
-        LOW SPD : {}
-        MED SPD : {}
-        HI SPD  : {}""".format(caps["low"], caps["med"], caps["hi"])
-        rospy.logerr(msg)
-
-        
-    def tuneTurnOmega(self, tune_msg):
-        msg = ""
-        if tune_msg.direction.upper() == 'LEFT':
-            self.L_OMEGA = tune_msg.omega
-            self.L_DURATION = tune_msg.duration
-            msg = """
-                  _LEFT_OMEGA set    : {}
-                  _LEFT_DURATION set : {}""".format( self.L_OMEGA, self.L_DURATION)
-        elif tune_msg.direction.upper() == 'RIGHT':
-            self.R_OMEGA = tune_msg.omega
-            self.R_DURATION = tune_msg.duration
-            msg = """
-                  _RIGHT_OMEGA set : {}
-                  _RIGHT_DURATION set : {}""".format( self.R_OMEGA, self.R_DURATION)
-        else:
-            msg = "Invalid message value : {}", tune_msg.direction
-                    
-        rospy.logerr(msg)
             
     def checkSign(self, sign_msg):
         sign = sign_msg.sign
@@ -128,7 +100,7 @@ class Arbiter:
         
         elif self.last_sign == 'SLOW':
             if self.dist_to_sign <= 0.70:
-                self.speed_limit = self.LOW_SPD
+                self.speed.speed_limit = "low"
                 self.did_see_sign = False
                 self.publish(v, o)
                 return
@@ -138,7 +110,7 @@ class Arbiter:
                 
         elif self.last_sign == 'FAST':
             if self.dist_to_sign <= 0.70:
-                self.speed_limit = self.MED_SPD
+                self.speed.speed_limit = "med"
                 self.did_see_sign = False
                 self.publish(v, o)
                 return
@@ -155,7 +127,7 @@ class Arbiter:
         msg = """
         Velocity : {}
         Omega    : {}
-        Duration : {}""".format(min(v, self.speed_limit), omega, duration_time)
+        Duration : {}""".format(min(v, self.speed.limit()), omega, duration_time)
         rospy.logerr(msg)
         start_time = rospy.get_time()
         rospy.logwarn("""
@@ -167,8 +139,10 @@ class Arbiter:
 
         rospy.logwarn("""
         End time   : {}""".format(rospy.get_time()))
+        # Hopefully this will allow the lane_filter_node to
+        # re-establish a lane
         start_time = rospy.get_time()
-        while (rospy.get_time() - start_time) <= 0.66:
+        while (rospy.get_time() - start_time) <= 0.66: # Make tunable?
               self.publish(v, 0.0)
               
     def turn(self, vel=0.25):
@@ -192,10 +166,59 @@ class Arbiter:
 
     def publish(self, v, o):
         output = Twist2DStamped()
-        output.v = min(v, self.speed_limit)
+        output.v = min(v, self.speed.limit())
         output.omega = o
         self.pub.publish(output)
+
+
+    #
+    # UTILITY METHODS
+    #
+
+    def tuneSpeedLimits(self, tune_msg):
+        low = tune_msg.low
+        med = tune_msg.med
+        hi = tune_msg.hi
+        if low <= med and med <= hi :
+            self.speed.set_caps(low, med, hi)
+            caps = self.speed.caps
+            msg = """
+            LOW SPD : {}
+            MED SPD : {}
+            HI SPD  : {}
         
+            CUR LMT : {}""".format(caps["low"], caps["med"], caps["hi"], self.speed.limit())
+        else:
+            msg = """
+            Invalid message values:
+                LOW : {}
+                MED : {}
+                HI  : {}
+            Must be LOW <= MED <= HI
+
+            CUR LMT : {}""".format(low, med, hi, self.speed.limit())
+
+        rospy.logerr(msg)
+
+        
+    def tuneTurnOmega(self, tune_msg):
+        msg = ""
+        if tune_msg.direction.upper() == 'LEFT':
+            self.L_OMEGA = tune_msg.omega
+            self.L_DURATION = tune_msg.duration
+            msg = """
+                  L_OMEGA    : {}
+                  L_DURATION : {}""".format( self.L_OMEGA, self.L_DURATION)
+        elif tune_msg.direction.upper() == 'RIGHT':
+            self.R_OMEGA = tune_msg.omega
+            self.R_DURATION = tune_msg.duration
+            msg = """
+                  R_OMEGA    : {}
+                  R_DURATION : {}""".format( self.R_OMEGA, self.R_DURATION)
+        else:
+            msg = "Invalid message value : {}", tune_msg.direction
+                    
+        rospy.logerr(msg)
 
         
 if __name__=='__main__':
