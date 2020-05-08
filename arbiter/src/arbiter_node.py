@@ -35,7 +35,7 @@ class Arbiter:
         self.d_err = 0.0
         self.phi_err = 0.0
 
-        self.speed_limit = _LOW_SPD
+        self.speed_limit = _MED_SPD
 
         self.did_see_sign = False
         self.dist_to_sign = 0.0
@@ -61,6 +61,8 @@ class Arbiter:
         elif self.last_sign == 'STOP':
             if self.dist_to_sign <= _STOP_DISTANCE + 0.05 :
                 self.publish(0.0, 0.0)
+            else:
+                self.publish(v, o)
             return
 
         elif self.last_sign == 'RIGHT' or self.last_sign == 'LEFT':
@@ -70,6 +72,9 @@ class Arbiter:
                 self.did_see_sign = False
                 self.last_sign = None
                 self.blocking = False
+                return
+            else:
+                self.publish(v, o)
             return
         
         elif self.last_sign == 'SLOW':
@@ -89,14 +94,12 @@ class Arbiter:
 
     def moveRobot(self, v, omega, duration_time, rate=100):
         # Generic function for moving the robot for a certain amount of time
-        start_time = rospy.get_time()  
+        start_time = rospy.get_time()
+        r = rospy.Rate(rate)
         while (rospy.get_time() - start_time) < duration_time:
-            rate = rospy.Rate(rate)
             self.publish(v, omega)
-            rate.sleep()
+            r.sleep()
 
-        output.v = 0
-        output.omega = 0
         self.publish(0, 0)
 
     def turn(self):
@@ -109,20 +112,21 @@ class Arbiter:
         # We set more or less aggressive omegas based on the position of the 
         # robot in the lane
         if self.last_sign == 'LEFT':
-            if math.fabs(self.d_err) <= 0.05:
-                moveRobot(0.25, 2.2, 3)
-            elif self.d_err > 0.05:
-                moveRobot(0.25, 1.9, 3)
-            elif self.d_err < -0.05:
-                moveRobot(0.25, 2.5, 3)
+            self.moveRobot(0.25, 1.75, 1.5)
+            #if math.fabs(self.d_err) <= 0.05:
+             #   moveRobot(0.25, 2.2, 3)
+            #elif self.d_err > 0.05:
+             #   moveRobot(0.25, 1.9, 3)
+            #elif self.d_err < -0.05:
+             #   moveRobot(0.25, 2.5, 3)
 
         elif self.last_sign == 'RIGHT':
             if math.fabs(self.d_err) <= 0.05:
-                moveRobot(0.25, -3.8, 1.5)
+                self.moveRobot(0.25, -3.8, 1.5)
             elif self.d_err > 0.05:
-                moveRobot(0.25, -3.9, 1.5)
+                self.moveRobot(0.25, -3.9, 1.5)
             elif self.d_err < -0.05:
-                moveRobot(0.25, -3.5, 1.5)
+                self.moveRobot(0.25, -3.5, 1.5)
 
     def updateSelfState(self, selfState):
         self.curr_v = selfState.v
