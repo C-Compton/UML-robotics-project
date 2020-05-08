@@ -1,0 +1,2 @@
+string direction
+float64 omega
