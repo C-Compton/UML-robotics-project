@@ -6,7 +6,7 @@ import math
 import threading
 
 from duckietown_msgs.msg import LanePose, Twist2DStamped, BoolStamped
-from arbiter.msg import OmegaTune
+from arbiter.msg import OmegaTune, SpeedTune
 from sign_reader.msg import SignInfo
 from utilities.utils import PidController
 from enum import Enum
@@ -15,12 +15,22 @@ _NODE_NAME = 'arbiter_node'
 
 _STOP_DISTANCE=0.6 # the width of one lane
 
-_LOW_SPD = 0.1
-_MED_SPD = 0.2
-_HI_SPD  = 0.5
 _SPD_TH  = 0.01
 
+class Speed:
+    def __init__(self):
+        self.limit = "med"
 
+        self.caps = {"low":0.1, "med":0.2, "hi":0.5}
+
+    def speed_limit(self):
+        return self.caps.get(self.limit, 0.2)
+
+    def set_limits(self, low, med, hi):
+        self.caps["low"] = low
+        self.caps["med"] = med
+        self.caps["hi"] = hi
+    
 class Arbiter:
     
     def __init__(self):
@@ -29,7 +39,8 @@ class Arbiter:
         rospy.Subscriber('lane_filter_node/lane_pose', LanePose, self.checkLanePose)
         rospy.Subscriber('sign_reader_node/sign_info', SignInfo, self.checkSign)
         rospy.Subscriber('arbiter_node/new_car_cmd', Twist2DStamped, self.updateSelfState)
-        rospy.Subscriber('omega_tune/tune', OmegaTune, self.updateTurnOmega)
+        rospy.Subscriber('omega_tune/tune', OmegaTune, self.tuneTurnOmega)
+        rospy.Subscriber('speed_tune/tune', SpeedTune, self.tuneSpeedLimits)
         self.pub = rospy.Publisher('arbiter_node/new_car_cmd', Twist2DStamped, queue_size=10)
         self.pubSwitch = rospy.Publisher('apriltag_detector_node/switch', BoolStamped, queue_size=10)
 
@@ -37,8 +48,6 @@ class Arbiter:
         
         self.d_err = 0.0
         self.phi_err = 0.0
-
-        self.speed_limit = _MED_SPD
 
         self.did_see_sign = False
         self.dist_to_sign = 0.0
@@ -50,8 +59,19 @@ class Arbiter:
         self.R_OMEGA = 4.0
         self.R_DURATION = 1.5
 
+        self.speed_limit = Speed()
 
-    def updateTurnOmega(self, tune_msg):
+    def tuneSpeedLimits(self, tune_msg):
+        self.speed_limit.set_limits(tune_msg.low, tune_msg.med, tune_msg.hi)
+        caps = self.speed_limit.caps
+        msg = """
+        LOW SPD : {}
+        MED SPD : {}
+        HI SPD  : {}""".format(caps["low"], caps["med"], caps["hi"])
+        rospy.logerr(msg)
+
+        
+    def tuneTurnOmega(self, tune_msg):
         msg = ""
         if tune_msg.direction.upper() == 'LEFT':
             self.L_OMEGA = tune_msg.omega
@@ -102,13 +122,13 @@ class Arbiter:
                 self.did_see_sign = False
                 self.blocking = False
                 return
-            else:
+            elif not self.blocking:
                 self.publish(v, o)
             return
         
         elif self.last_sign == 'SLOW':
             if self.dist_to_sign <= 0.70:
-                self.speed_limit = _LOW_SPD
+                self.speed_limit = self.LOW_SPD
                 self.did_see_sign = False
                 self.publish(v, o)
                 return
@@ -118,7 +138,7 @@ class Arbiter:
                 
         elif self.last_sign == 'FAST':
             if self.dist_to_sign <= 0.70:
-                self.speed_limit = _MED_SPD
+                self.speed_limit = self.MED_SPD
                 self.did_see_sign = False
                 self.publish(v, o)
                 return
@@ -147,7 +167,10 @@ class Arbiter:
 
         rospy.logwarn("""
         End time   : {}""".format(rospy.get_time()))
-
+        start_time = rospy.get_time()
+        while (rospy.get_time() - start_time) <= 0.66:
+              self.publish(v, 0.0)
+              
     def turn(self, vel=0.25):
         # Assume that the robot comes to a stop before executing a turn.
         # Use the phi value to center it
@@ -155,7 +178,7 @@ class Arbiter:
             self.moveRobot(0, -2 * self.phi_err, 0.5)
 
         # Then, based on the sign, we turn
-        # We set more or less aggressive omegas based on the position of the 
+         # We set more or less aggressive omegas based on the position of the 
         # robot in the lane
         if self.last_sign == 'LEFT':
             self.moveRobot(vel, self.L_OMEGA, self.L_DURATION)
