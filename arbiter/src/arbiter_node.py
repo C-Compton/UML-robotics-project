@@ -35,7 +35,7 @@ class Arbiter:
         self.d_err = 0.0
         self.phi_err = 0.0
 
-        self.speed_limit = _MED_SPD
+        self.speed_limit = _LOW_SPD
 
         self.did_see_sign = False
         self.dist_to_sign = 0.0
@@ -45,40 +45,38 @@ class Arbiter:
         sign = sign_msg.sign
         self.dist_to_sign = sign_msg.dist_to_sign
 
-        if sign is not 'NONE':
+        if sign != 'NONE':
             self.did_see_sign = True
             self.last_sign = sign
-
     
     def arbitration(self, car_cmd_baseline):
         v = car_cmd_baseline.v
         o = car_cmd_baseline.omega
         # If there's no sign to handle or we saw 'GO', use LF
-        if not self.did_see_sign or self.last_sign is 'GO':
+        if not self.did_see_sign or self.last_sign == 'GO':
             self.did_see_sign = False
-            self.last_sign is None
             self.publish(v, o)
             return
 
-        elif self.last_sign is 'STOP':
+        elif self.last_sign == 'STOP':
             if self.dist_to_sign <= _STOP_DISTANCE + 0.05 :
                 self.publish(0.0, 0.0)
             return
 
-        elif self.last_sign is 'RIGHT' or is 'LEFT':
-            if self.dist_to_sign <= 0.65 and is not self.blocking:
+        elif self.last_sign == 'RIGHT' or self.last_sign == 'LEFT':
+            if self.dist_to_sign <= 0.65 and not self.blocking:
                 self.blocking = True                
-                rospy.logwarn("Turning")
                 self.turn()
                 self.did_see_sign = False
+                self.last_sign = None
                 self.blocking = False
             return
         
-        elif self.last_sign is 'SLOW':
+        elif self.last_sign == 'SLOW':
             if self.dist_to_sign <= 0.70:
                 self.speed_limit = _LOW_SPD
                 
-        elif self.last_sign is 'FAST':
+        elif self.last_sign == 'FAST':
             if self.dist_to_sign <= 0.70:
                 self.speed_limit = _MED_SPD
 
