@@ -6,6 +6,7 @@ import math
 import threading
 
 from duckietown_msgs.msg import LanePose, Twist2DStamped, BoolStamped
+from arbiter.msg import OmegaTune
 from sign_reader.msg import SignInfo
 from utilities.utils import PidController
 from enum import Enum
@@ -19,6 +20,12 @@ _MED_SPD = 0.2
 _HI_SPD  = 0.5
 _SPD_TH  = 0.01
 
+_LEFT_OMEGA = 2.0
+_LEFT_DURATION = 1.5
+
+_RIGHT_OMEGA = 4.0
+_RIGHT_DURATION = 1.5
+
 class Arbiter:
     
     def __init__(self):
@@ -27,6 +34,7 @@ class Arbiter:
         rospy.Subscriber('lane_filter_node/lane_pose', LanePose, self.checkLanePose)
         rospy.Subscriber('sign_reader_node/sign_info', SignInfo, self.checkSign)
         rospy.Subscriber('arbiter_node/new_car_cmd', Twist2DStamped, self.updateSelfState)
+        rospy.Subscriber('omega_tune/tune', OmegaTune, self.updateTurnOmega)
         self.pub = rospy.Publisher('arbiter_node/new_car_cmd', Twist2DStamped, queue_size=10)
         self.pubSwitch = rospy.Publisher('apriltag_detector_node/switch', BoolStamped, queue_size=10)
 
@@ -41,6 +49,25 @@ class Arbiter:
         self.dist_to_sign = 0.0
         self.last_sign = 'NONE'
 
+    def updateTurnOmega(self, tune_msg):
+        msg = ""
+        if tune_msg.direction.upper() == 'LEFT':
+            _LEFT_OMEGA = tune_msg.omega
+            _LEFT_DURATION = tune_msg.duration
+            msg = """
+                  _LEFT_OMEGA set    : {}
+                  _LEFT_DURATION set : {}""".format( _LEFT_OMEGA, _LEFT_DURATION)
+        elif tune_msg.direction.upper() == 'RIGHT':
+            _RIGHT_OMEGA = tune_msg.omega
+            _RIGHT_DURATION = tune_msg.duration
+            msg = """
+                  _RIGHT_OMEGA set : {}
+                  _RIGHT_DURATION set : {}""".format( _RIGHT_OMEGA, _RIGHT_DURATION)
+        else:
+            msg = "Invalid message value : {}", tune_msg.direction
+                    
+        rospy.logerr(msg)
+            
     def checkSign(self, sign_msg):
         sign = sign_msg.sign
         self.dist_to_sign = sign_msg.dist_to_sign
@@ -102,7 +129,7 @@ class Arbiter:
 
         self.publish(0, 0)
 
-    def turn(self):
+    def turn(self, vel=0.25):
         # Assume that the robot comes to a stop before executing a turn.
         # Use the phi value to center it
         if math.fabs(self.phi_err) > 0.2: 
@@ -112,7 +139,12 @@ class Arbiter:
         # We set more or less aggressive omegas based on the position of the 
         # robot in the lane
         if self.last_sign == 'LEFT':
-            self.moveRobot(0.25, 1.75, 1.5)
+            msg = """
+                  Velocity : {}
+                  Omega    : {}
+                  Duration : {}""".format(min(v, self.speed_limig), _LEFT_OMEGA, _LEFT_DURATION)
+            rospy.logerr
+            self.moveRobot(vel, _LEFT_OMEGA, _LEFT_DURATION)
             #if math.fabs(self.d_err) <= 0.05:
              #   moveRobot(0.25, 2.2, 3)
             #elif self.d_err > 0.05:
