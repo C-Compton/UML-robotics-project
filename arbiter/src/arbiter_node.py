@@ -96,8 +96,8 @@ class Arbiter:
             if self.dist_to_sign <= 0.65 and not self.blocking:
                 self.blocking = True                
                 self.turn()
-                self.did_see_sign = False
                 self.last_sign = None
+                self.did_see_sign = False
                 self.blocking = False
                 return
             else:
@@ -121,13 +121,21 @@ class Arbiter:
 
     def moveRobot(self, v, omega, duration_time, rate=100):
         # Generic function for moving the robot for a certain amount of time
+        msg = """
+        Velocity : {}
+        Omega    : {}
+        Duration : {}""".format(min(v, self.speed_limit), omega, duration_time)
+        rospy.logerr(msg)
         start_time = rospy.get_time()
+        rospy.logwarn("""
+        Start Time : {}""".format(start_time))
         r = rospy.Rate(rate)
         while (rospy.get_time() - start_time) < duration_time:
             self.publish(v, omega)
             r.sleep()
 
-        self.publish(0, 0)
+        rospy.logwarn("""
+        End time   : {}""".format(rospy.get_time()))
 
     def turn(self, vel=0.25):
         # Assume that the robot comes to a stop before executing a turn.
@@ -139,11 +147,6 @@ class Arbiter:
         # We set more or less aggressive omegas based on the position of the 
         # robot in the lane
         if self.last_sign == 'LEFT':
-            msg = """
-                  Velocity : {}
-                  Omega    : {}
-                  Duration : {}""".format(min(v, self.speed_limig), _LEFT_OMEGA, _LEFT_DURATION)
-            rospy.logerr
             self.moveRobot(vel, _LEFT_OMEGA, _LEFT_DURATION)
             #if math.fabs(self.d_err) <= 0.05:
              #   moveRobot(0.25, 2.2, 3)
