@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(sign_reader)
+project(utilities)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -8,12 +8,7 @@ project(sign_reader)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  duckietown_msgs
-  geometry_msgs
-  roscpp
   rospy
-  std_msgs
-  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -23,7 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
-#catkin_python_setup()
+catkin_python_setup()
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -50,10 +45,9 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  SignInfo.msg
-)
+# add_message_files(
+#   FILES
+# )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -70,10 +64,10 @@ add_message_files(
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  duckietown_msgs geometry_msgs std_msgs
-)
+# generate_messages(
+#   DEPENDENCIES
+#   duckietown_msgs geometry_msgs std_msgs
+# )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -107,7 +101,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES sign_reader
-  CATKIN_DEPENDS duckietown_msgs geometry_msgs roscpp rospy std_msgs message_runtime
+  CATKIN_DEPENDS rospy
 #  DEPENDS system_lib
 )
 
