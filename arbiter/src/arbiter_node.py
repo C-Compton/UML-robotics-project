@@ -20,11 +20,6 @@ _MED_SPD = 0.2
 _HI_SPD  = 0.5
 _SPD_TH  = 0.01
 
-_LEFT_OMEGA = 2.0
-_LEFT_DURATION = 1.5
-
-_RIGHT_OMEGA = 4.0
-_RIGHT_DURATION = 1.5
 
 class Arbiter:
     
@@ -49,20 +44,27 @@ class Arbiter:
         self.dist_to_sign = 0.0
         self.last_sign = 'NONE'
 
+        self.L_OMEGA = 2.0
+        self.L_DURATION = 1.5
+
+        self.R_OMEGA = 4.0
+        self.R_DURATION = 1.5
+
+
     def updateTurnOmega(self, tune_msg):
         msg = ""
         if tune_msg.direction.upper() == 'LEFT':
-            _LEFT_OMEGA = tune_msg.omega
-            _LEFT_DURATION = tune_msg.duration
+            self.L_OMEGA = tune_msg.omega
+            self.L_DURATION = tune_msg.duration
             msg = """
                   _LEFT_OMEGA set    : {}
-                  _LEFT_DURATION set : {}""".format( _LEFT_OMEGA, _LEFT_DURATION)
+                  _LEFT_DURATION set : {}""".format( self.L_OMEGA, self.L_DURATION)
         elif tune_msg.direction.upper() == 'RIGHT':
-            _RIGHT_OMEGA = tune_msg.omega
-            _RIGHT_DURATION = tune_msg.duration
+            self.R_OMEGA = tune_msg.omega
+            self.R_DURATION = tune_msg.duration
             msg = """
                   _RIGHT_OMEGA set : {}
-                  _RIGHT_DURATION set : {}""".format( _RIGHT_OMEGA, _RIGHT_DURATION)
+                  _RIGHT_DURATION set : {}""".format( self.R_OMEGA, self.R_DURATION)
         else:
             msg = "Invalid message value : {}", tune_msg.direction
                     
@@ -107,13 +109,22 @@ class Arbiter:
         elif self.last_sign == 'SLOW':
             if self.dist_to_sign <= 0.70:
                 self.speed_limit = _LOW_SPD
+                self.did_see_sign = False
+                self.publish(v, o)
+                return
+            else:
+                self.publish(v, o)
+                return
                 
         elif self.last_sign == 'FAST':
             if self.dist_to_sign <= 0.70:
                 self.speed_limit = _MED_SPD
-
-        self.did_see_sign = False
-        self.publish(v, o)
+                self.did_see_sign = False
+                self.publish(v, o)
+                return
+            else:
+                self.publish(v, o)
+                return
 
     def checkLanePose(self, lanePose_msg):
         self.d_err = lanePose_msg.d
@@ -147,21 +158,10 @@ class Arbiter:
         # We set more or less aggressive omegas based on the position of the 
         # robot in the lane
         if self.last_sign == 'LEFT':
-            self.moveRobot(vel, _LEFT_OMEGA, _LEFT_DURATION)
-            #if math.fabs(self.d_err) <= 0.05:
-             #   moveRobot(0.25, 2.2, 3)
-            #elif self.d_err > 0.05:
-             #   moveRobot(0.25, 1.9, 3)
-            #elif self.d_err < -0.05:
-             #   moveRobot(0.25, 2.5, 3)
+            self.moveRobot(vel, self.L_OMEGA, self.L_DURATION)
 
         elif self.last_sign == 'RIGHT':
-            if math.fabs(self.d_err) <= 0.05:
-                self.moveRobot(0.25, -3.8, 1.5)
-            elif self.d_err > 0.05:
-                self.moveRobot(0.25, -3.9, 1.5)
-            elif self.d_err < -0.05:
-                self.moveRobot(0.25, -3.5, 1.5)
+            self.moveRobot(vel, self.R_OMEGA, self.R_DURATION)
 
     def updateSelfState(self, selfState):
         self.curr_v = selfState.v
