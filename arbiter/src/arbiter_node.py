@@ -11,11 +11,14 @@ from sign_reader.msg import SignInfo
 from utilities.utils import PidController
 from enum import Enum
 
+# Global constants
 _NODE_NAME = 'arbiter_node'
 
-_STOP_DISTANCE=0.6 # the width of one lane
-
-_SPD_TH  = 0.01
+# The approximate length of a Duckietown mat.
+# The signs were to be placed on opposite sides of
+# intersenctions to allow for adequate timing to see
+# the sign if coming around a bend.
+_STOP_DISTANCE=0.6 
 
 class Speed:
     def __init__(self):
@@ -42,26 +45,34 @@ class Arbiter:
         rospy.Subscriber('omega_tune/tune', OmegaTune, self.tuneTurnOmega)
         rospy.Subscriber('speed_tune/tune', SpeedTune, self.tuneSpeedLimits)
         self.pub = rospy.Publisher('arbiter_node/new_car_cmd', Twist2DStamped, queue_size=10)
-        self.pubSwitch = rospy.Publisher('apriltag_detector_node/switch', BoolStamped, queue_size=10)
 
+        # Non-blocking pseudo-mutex
+        # Used only when turning
         self.blocking = False
-        
+
+        # Originally used to dynamically calculate
+        # v, omega of turns
         self.d_err = 0.0
         self.phi_err = 0.0
 
+        # Left and Right turning constants
+        self.L_OMEGA = 2.0
+        self.L_DURATION = 1.5
+        self.R_OMEGA = 4.0
+        self.R_DURATION = 1.5
+
+        # States to keep track of signs spotted
         self.did_see_sign = False
         self.dist_to_sign = 0.0
         self.last_sign = 'NONE'
 
-        self.L_OMEGA = 2.0
-        self.L_DURATION = 1.5
-
-        self.R_OMEGA = 4.0
-        self.R_DURATION = 1.5
-
+        # instance of speed class for keeping track of
+        # current speed limit and updating limits when
+        # tuning
         self.speed = Speed()
 
-            
+
+    
     def checkSign(self, sign_msg):
         sign = sign_msg.sign
         self.dist_to_sign = sign_msg.dist_to_sign
@@ -69,10 +80,13 @@ class Arbiter:
         if sign != 'NONE':
             self.did_see_sign = True
             self.last_sign = sign
-    
+
+    # The meat and potatoes
     def arbitration(self, car_cmd_baseline):
+        # First extract the base line values form the lane_controller_node
         v = car_cmd_baseline.v
         o = car_cmd_baseline.omega
+        
         # If there's no sign to handle or we saw 'GO', use LF
         if not self.did_see_sign or self.last_sign == 'GO':
             self.did_see_sign = False
@@ -80,25 +94,35 @@ class Arbiter:
             return
 
         elif self.last_sign == 'STOP':
+            # Only execute the stop if we're close enough, with an added buffer for
+            # reaction delay.
             if self.dist_to_sign <= _STOP_DISTANCE + 0.05 :
                 self.publish(0.0, 0.0)
+
+            # Otherwise, continue executing the LF values
             else:
                 self.publish(v, o)
             return
 
         elif self.last_sign == 'RIGHT' or self.last_sign == 'LEFT':
             if self.dist_to_sign <= 0.65 and not self.blocking:
+                # self.turn() rus in an open loop right now,
+                # so block with a boolean to prevent
+                # multiple open loops queueing up
                 self.blocking = True                
                 self.turn()
                 self.last_sign = None
                 self.did_see_sign = False
                 self.blocking = False
                 return
+            # If we're not blocking, publish LF values
+            # if we are blocking, then we're in the turn() method
             elif not self.blocking:
                 self.publish(v, o)
             return
         
         elif self.last_sign == 'SLOW':
+            # Only execute when within a set distance.
             if self.dist_to_sign <= 0.70:
                 self.speed.speed_limit = "low"
                 self.did_see_sign = False
@@ -110,7 +134,7 @@ class Arbiter:
                 
         elif self.last_sign == 'FAST':
             if self.dist_to_sign <= 0.70:
-                self.speed.speed_limit = "med"
+                self.speed.speed_limit = "med" # Opted for low and med speeds only for time being
                 self.did_see_sign = False
                 self.publish(v, o)
                 return
@@ -124,23 +148,20 @@ class Arbiter:
 
     def moveRobot(self, v, omega, duration_time, rate=100):
         # Generic function for moving the robot for a certain amount of time
-        msg = """
-        Velocity : {}
-        Omega    : {}
-        Duration : {}""".format(min(v, self.speed.limit()), omega, duration_time)
-        rospy.logerr(msg)
+        self.logMoveRobot(min(v, self.speed.limit()), omega, duration_time)
         start_time = rospy.get_time()
-        rospy.logwarn("""
+        rospy.logdebug("""
         Start Time : {}""".format(start_time))
         r = rospy.Rate(rate)
         while (rospy.get_time() - start_time) < duration_time:
             self.publish(v, omega)
             r.sleep()
 
-        rospy.logwarn("""
+        rospy.logdebug("""
         End time   : {}""".format(rospy.get_time()))
-        # Hopefully this will allow the lane_filter_node to
-        # re-establish a lane
+
+        # Allow the lane_filter_node to
+        # re-establish a lane (hopefully)
         start_time = rospy.get_time()
         while (rospy.get_time() - start_time) <= 0.66: # Make tunable?
               self.publish(v, 0.0)
@@ -151,22 +172,22 @@ class Arbiter:
         if math.fabs(self.phi_err) > 0.2: 
             self.moveRobot(0, -2 * self.phi_err, 0.5)
 
-        # Then, based on the sign, we turn
-         # We set more or less aggressive omegas based on the position of the 
-        # robot in the lane
         if self.last_sign == 'LEFT':
             self.moveRobot(vel, self.L_OMEGA, self.L_DURATION)
 
         elif self.last_sign == 'RIGHT':
             self.moveRobot(vel, self.R_OMEGA, self.R_DURATION)
 
+    # Orignally used the updated state values with the stop method's
+    # PID controller, as what this node published was the ground
+    # truth of the current v, omega values published
     def updateSelfState(self, selfState):
         self.curr_v = selfState.v
         self.curr_omega = selfState.omega
 
     def publish(self, v, o):
         output = Twist2DStamped()
-        output.v = min(v, self.speed.limit())
+        output.v = min(v, self.speed.limit()) # ensure we don't go above our set speed limit
         output.omega = o
         self.pub.publish(output)
 
@@ -174,6 +195,14 @@ class Arbiter:
     #
     # UTILITY METHODS
     #
+
+    def logMoveRobot(self, v, omega, duration_time):
+        msg = """
+        Velocity : {}
+        Omega    : {}
+        Duration : {}""".format(v, omega, duration_time)
+        rospy.logdebug(msg)
+        
 
     def tuneSpeedLimits(self, tune_msg):
         low = tune_msg.low
@@ -198,7 +227,7 @@ class Arbiter:
 
             CUR LMT : {}""".format(low, med, hi, self.speed.limit())
 
-        rospy.logerr(msg)
+        rospy.logdebug(msg)
 
         
     def tuneTurnOmega(self, tune_msg):
@@ -218,7 +247,7 @@ class Arbiter:
         else:
             msg = "Invalid message value : {}", tune_msg.direction
                     
-        rospy.logerr(msg)
+        rospy.logdebug(msg)
 
         
 if __name__=='__main__':
@@ -227,4 +256,4 @@ if __name__=='__main__':
         Arbiter()
         rospy.spin()
     except rospy.ROSInterruptException:
-        rospy.loginfo("TODO : Log Exception thrown")        
+        rospy.logerr("ROSInterruptException")        

@@ -33,12 +33,11 @@
 	  <!-- 
 	       In /dt-core/package/duckietown_demos/launch/master.launch, add the following
 	       just just after line 285, before the <include> tage for lane_controller_node.launch
-	       <remap from="lane_controller_node/car_cmd" to="lane_controller_node/arbiter_intercept_cmd/>"
+	       <remap from="arbiter_node/new_car_cmd" to="lane_controller_node/car_cmd"/>
 	    -->
 	  <remap from="lane_controller_node/car_cmd" to="$(arg veh)/lane_controller_node/arbiter_intercept_cmd"/>
 	  <remap from="arbiter_node/new_car_cmd" to="$(arg veh)/lane_controller_node/car_cmd"/>
 	  <remap from="lane_filter_node/lane_pose" to="$(arg veh)/lane_filter_node/lane_pose"/>
-	  <remap from="apriltag_detector_node/switch" to="$(arg veh)/apriltag_detector_node/switch"/>
 	</node>
 	
 	<include file="$(find sign_reader)/launch/sign_reader.launch" />
