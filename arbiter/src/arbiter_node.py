@@ -46,6 +46,7 @@ class Arbiter:
         rospy.Subscriber('speed_tune/tune', SpeedTune, self.tuneSpeedLimits)
         self.pub = rospy.Publisher('arbiter_node/new_car_cmd', Twist2DStamped, queue_size=10)
 
+        self.output = Twist2DStamped()
         # Non-blocking pseudo-mutex
         # Used only when turning
         self.blocking = False
@@ -186,10 +187,9 @@ class Arbiter:
         self.curr_omega = selfState.omega
 
     def publish(self, v, o):
-        output = Twist2DStamped()
-        output.v = min(v, self.speed.limit()) # ensure we don't go above our set speed limit
-        output.omega = o
-        self.pub.publish(output)
+        self.output.v = min(v, self.speed.limit()) # ensure we don't go above our set speed limit
+        self.output.omega = o
+        self.pub.publish(self.output)
 
 
     #
