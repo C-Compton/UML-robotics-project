@@ -90,6 +90,7 @@ class Arbiter:
         
         # If there's no sign to handle or we saw 'GO', use LF
         if not self.did_see_sign or self.last_sign == 'GO':
+            rospy.logerr("No sign or GO : Pass through")
             self.did_see_sign = False
             self.publish(v, o)
             return
@@ -98,6 +99,7 @@ class Arbiter:
             # Only execute the stop if we're close enough, with an added buffer for
             # reaction delay.
             if self.dist_to_sign <= _STOP_DISTANCE + 0.05 :
+                rospy.logerr("Executing STOP command")
                 self.publish(0.0, 0.0)
 
             # Otherwise, continue executing the LF values
@@ -110,7 +112,8 @@ class Arbiter:
                 # self.turn() rus in an open loop right now,
                 # so block with a boolean to prevent
                 # multiple open loops queueing up
-                self.blocking = True                
+                self.blocking = True
+                rospy.logerr("Executing TURN command: with Lock")
                 self.turn()
                 self.last_sign = None
                 self.did_see_sign = False
@@ -125,6 +128,7 @@ class Arbiter:
         elif self.last_sign == 'SLOW':
             # Only execute when within a set distance.
             if self.dist_to_sign <= 0.70:
+                rospy.logerr("Executing SLOW command")
                 self.speed.speed_limit = "low"
                 self.did_see_sign = False
                 self.publish(v, o)
@@ -135,6 +139,7 @@ class Arbiter:
                 
         elif self.last_sign == 'FAST':
             if self.dist_to_sign <= 0.70:
+                rospy.logerr("Executing FAST command")
                 self.speed.speed_limit = "med" # Opted for low and med speeds only for time being
                 self.did_see_sign = False
                 self.publish(v, o)
@@ -155,6 +160,7 @@ class Arbiter:
         Start Time : {}""".format(start_time))
         r = rospy.Rate(rate)
         while (rospy.get_time() - start_time) < duration_time:
+            rospy.logerr("Executing moveRobot loop")
             self.publish(v, omega)
             r.sleep()
 
